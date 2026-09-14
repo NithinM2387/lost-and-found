@@ -1,0 +1,30 @@
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body{
+  font-family: Arial, sans-serif;
+  background-color: #ffffff;
+  color: #222222;
+}
+
+.navbar{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 50px;
+  border-bottom: 1px solid #eeeeee;
+
+}
+
+.logo{
+  font-size: 24px;
+}
+
+.nav-link{
+  margin-left: 25px;
+  text-decoration: none;
+  color: #333333;
+}
