@@ -1,11 +1,9 @@
-import { useState,useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import ItemCard from "../components/ItemCard"
 
-
 function Browse() {
   const navigate = useNavigate()
-
   const [search, setSearch] = useState("")
   const [type, setType] = useState("All")
   const [category, setCategory] = useState("All")
@@ -13,40 +11,48 @@ function Browse() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
-useEffect(() => {
-  const user = JSON.parse(localStorage.getItem("user"))
+  useEffect(() => {
+    async function getItems() {
+      try {
+        const response = await fetch("http://localhost:5000/api/items")
 
-  fetch("http://localhost:5000/api/items")
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Failed to load items")
+        if (!response.ok) {
+          throw new Error("Failed to load items")
+        }
+
+        const data = await response.json()
+        setItems(data)
+      } catch {
+        setError("Unable to load items.")
       }
-      return response.json()
-    })
-    .then((data) => {
-      setItems(data)
+
       setLoading(false)
-    })
-    .catch(() => {
-      setError("Unable to load items.")
-      setLoading(false)
-    })
-}, [])
+    }
 
-if (loading) {
-  return <p>Loading items...</p>
-}
+    getItems()
+  }, [])
 
-if (error) {
-  return <p>{error}</p>
-}
+  const filteredItems = []
 
-  const filteredItems = items.filter((item) =>
-  item.status !== "Claimed" &&
-  item.name.toLowerCase().includes(search.toLowerCase()) &&
-  (type === "All" || item.status === type) &&
-  (category === "All" || item.category === category)
-)
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index]
+    const nameMatches = item.name.toLowerCase().includes(search.toLowerCase())
+    const typeMatches = type === "All" || item.status === type
+    const categoryMatches = category === "All" || item.category === category
+
+    if (nameMatches && typeMatches && categoryMatches) {
+      filteredItems.push(item)
+    }
+  }
+
+  if (loading) {
+    return <p>Loading items...</p>
+  }
+
+  if (error) {
+    return <p>{error}</p>
+  }
+
   return (
     <div className="browse-section">
       <h1>Browse Items</h1>
@@ -56,19 +62,16 @@ if (error) {
         type="text"
         placeholder="Search items..."
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(event) => setSearch(event.target.value)}
       />
 
-      <select value={type} onChange={(e) => setType(e.target.value)}>
+      <select value={type} onChange={(event) => setType(event.target.value)}>
         <option value="All">All</option>
         <option value="Lost">Lost</option>
         <option value="Found">Found</option>
       </select>
 
-      <select
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
-      >
+      <select value={category} onChange={(event) => setCategory(event.target.value)}>
         <option value="All">All Categories</option>
         <option value="Bags">Bags</option>
         <option value="Electronics">Electronics</option>
@@ -79,21 +82,21 @@ if (error) {
         {filteredItems.length === 0 ? (
           <p>No items found.</p>
         ) : (
-    filteredItems.map((item) => (
-      <ItemCard
-        key={item._id}
-        name={item.name}
-        type={item.status}
-        category={item.category}
-        location={item.location}
-        description={item.description}
-        date={item.date}
-        onClick={() => navigate(`/item/${item._id}`)}
-      />
-    ))
-  )}
-</div>
-</div>
+          filteredItems.map((item) => (
+            <ItemCard
+              key={item._id}
+              name={item.name}
+              type={item.status}
+              category={item.category}
+              location={item.location}
+              description={item.description}
+              date={item.date}
+              onClick={() => navigate(`/item/${item._id}`)}
+            />
+          ))
+        )}
+      </div>
+    </div>
   )
 }
 

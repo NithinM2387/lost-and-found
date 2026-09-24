@@ -1,16 +1,25 @@
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 
 function Profile() {
   const user = JSON.parse(localStorage.getItem("user"))
+  const userId = user ? user.id : ""
   const [items, setItems] = useState([])
 
   useEffect(() => {
-    if (user) {
-      fetch(`http://localhost:5000/api/my-items/${user.id}`)
-        .then((response) => response.json())
-        .then((data) => setItems(data))
+    async function getItems() {
+      try {
+        const response = await fetch(`http://localhost:5000/api/my-items/${userId}`)
+        const data = await response.json()
+        setItems(data)
+      } catch {
+        setItems([])
+      }
     }
-  }, [])
+
+    if (userId) {
+      getItems()
+    }
+  }, [userId])
 
   if (!user) {
     return <p>Please login first.</p>
@@ -21,7 +30,6 @@ function Profile() {
       <h1>My Profile</h1>
       <p>Name: {user.name}</p>
       <p>Email: {user.email}</p>
-
       <h2>My Reports</h2>
 
       {items.length === 0 ? (

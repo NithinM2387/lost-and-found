@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 
 function Admin() {
   const [items, setItems] = useState([])
@@ -6,54 +6,87 @@ function Admin() {
   const [error, setError] = useState("")
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/admin/items")
-      .then((response) => {
+    async function getItems() {
+      try {
+        const response = await fetch("http://localhost:5000/api/admin/items")
+
         if (!response.ok) {
           throw new Error("Failed to load reports")
         }
-        return response.json()
-      })
-      .then((data) => {
+
+        const data = await response.json()
         setItems(data)
-        setLoading(false)
-      })
-      .catch(() => {
+      } catch {
         setError("Unable to load reports.")
-        setLoading(false)
-      })
+      }
+
+      setLoading(false)
+    }
+
+    getItems()
   }, [])
 
-  const lost = items.filter((item) => item.status === "Lost").length
-  const found = items.filter((item) => item.status === "Found").length
-  const claimed = items.filter((item) => item.status === "Claimed").length
+  async function updateApproval(id, approvalStatus) {
+    try {
+      const response = await fetch(`http://localhost:5000/api/items/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approvalStatus })
+      })
 
-  const updateApproval = (id, approvalStatus) => {
-    fetch(`http://localhost:5000/api/items/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        approvalStatus: approvalStatus
-      })
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        setItems(
-          items.map((item) =>
-            item._id === id ? data : item
-          )
-        )
-      })
+      if (!response.ok) {
+        throw new Error("Unable to update the report")
+      }
+
+      const updatedItem = await response.json()
+
+      setItems((currentItems) => currentItems.map((item) => {
+        if (item._id === id) {
+          return updatedItem
+        }
+
+        return item
+      }))
+    } catch {
+      alert("Unable to update the report.")
+    }
   }
 
-  const removeItem = (id) => {
-    fetch(`http://localhost:5000/api/items/${id}`, {
-      method: "DELETE"
-    })
-      .then(() => {
-        setItems(items.filter((item) => item._id !== id))
-      })
+  async function removeItem(id) {
+    try {
+      const response = await fetch(`http://localhost:5000/api/items/${id}`, { method: "DELETE" })
+
+      if (!response.ok) {
+        throw new Error("Unable to remove the report")
+      }
+
+      setItems((currentItems) => currentItems.filter((item) => item._id !== id))
+    } catch {
+      alert("Unable to remove the report.")
+    }
+  }
+
+  let lost = 0
+  let found = 0
+  let claimed = 0
+  const activeReports = []
+  const claimedReports = []
+
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index]
+
+    if (item.status === "Lost") {
+      lost += 1
+    } else if (item.status === "Found") {
+      found += 1
+    } else if (item.status === "Claimed") {
+      claimed += 1
+      claimedReports.push(item)
+    }
+
+    if (item.status !== "Claimed") {
+      activeReports.push(item)
+    }
   }
 
   if (loading) {
@@ -63,14 +96,6 @@ function Admin() {
   if (error) {
     return <p>{error}</p>
   }
-
-  const activeReports = items.filter(
-    (item) => item.status !== "Claimed"
-  )
-
-  const claimedReports = items.filter(
-    (item) => item.status === "Claimed"
-  )
 
   return (
     <div className="admin-dashboard">
@@ -82,17 +107,14 @@ function Admin() {
           <h2>{items.length}</h2>
           <p>Total Items</p>
         </div>
-
         <div className="admin-stat">
           <h2>{lost}</h2>
           <p>Lost</p>
         </div>
-
         <div className="admin-stat">
           <h2>{found}</h2>
           <p>Found</p>
         </div>
-
         <div className="admin-stat">
           <h2>{claimed}</h2>
           <p>Claimed</p>
@@ -107,39 +129,20 @@ function Admin() {
         activeReports.map((item) => (
           <div key={item._id} className="admin-report">
             <h3>{item.name}</h3>
-
             <p>Type: {item.status}</p>
             <p>Category: {item.category}</p>
             <p>Location: {item.location}</p>
             <p>Date: {item.date}</p>
-
-            <p>
-              Approval: {item.approvalStatus || "Pending"}
-            </p>
+            <p>Approval: {item.approvalStatus || "Pending"}</p>
 
             {item.approvalStatus === "Pending" && (
               <>
-                <button
-                  onClick={() =>
-                    updateApproval(item._id, "Approved")
-                  }
-                >
-                  Approve
-                </button>
-
-                <button
-                  onClick={() =>
-                    updateApproval(item._id, "Rejected")
-                  }
-                >
-                  Reject
-                </button>
+                <button onClick={() => updateApproval(item._id, "Approved")}>Approve</button>
+                <button onClick={() => updateApproval(item._id, "Rejected")}>Reject</button>
               </>
             )}
 
-            <button onClick={() => removeItem(item._id)}>
-              Remove
-            </button>
+            <button onClick={() => removeItem(item._id)}>Remove</button>
           </div>
         ))
       )}
@@ -152,15 +155,11 @@ function Admin() {
         claimedReports.map((item) => (
           <div key={item._id} className="admin-report">
             <h3>{item.name}</h3>
-
             <p>Category: {item.category}</p>
             <p>Location: {item.location}</p>
             <p>Date: {item.date}</p>
             <p>Status: Claimed</p>
-
-            <button onClick={() => removeItem(item._id)}>
-              Remove
-            </button>
+            <button onClick={() => removeItem(item._id)}>Remove</button>
           </div>
         ))
       )}

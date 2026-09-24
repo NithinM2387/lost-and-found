@@ -2,11 +2,15 @@ import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 
 function Navbar() {
-  const [user, setUser] = useState(
-    JSON.parse(localStorage.getItem("user"))
-  )
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")))
 
   const navigate = useNavigate()
+
+  function logout() {
+    localStorage.removeItem("user")
+    setUser(null)
+    navigate("/login")
+  }
 
   return (
     <nav className="navbar">
@@ -22,15 +26,7 @@ function Navbar() {
             <Link to="/report/found" className="nav-link">Report Found</Link>
             <Link to="/profile" className="nav-link">Profile</Link>
 
-            <button
-              onClick={() => {
-                localStorage.removeItem("user")
-                setUser(null)
-                navigate("/login")
-              }}
-            >
-              Logout
-            </button>
+            <button onClick={logout}>Logout</button>
           </>
         ) : (
           <>

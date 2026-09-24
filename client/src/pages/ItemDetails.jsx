@@ -1,41 +1,64 @@
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
 
 function ItemDetails() {
   const { id } = useParams()
   const [item, setItem] = useState(null)
   const [matches, setMatches] = useState([])
-
   const user = JSON.parse(localStorage.getItem("user"))
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/items/${id}`)
-      .then((response) => {
+    async function getItem() {
+      try {
+        const response = await fetch(`http://localhost:5000/api/items/${id}`)
+
         if (!response.ok) {
-          throw new Error("Failed to load item")
+          return
         }
-        return response.json()
+
+        const data = await response.json()
+        setItem(data)
+      } catch {
+        setItem(null)
+      }
+    }
+
+    async function getMatches() {
+      try {
+        const response = await fetch(`http://localhost:5000/api/items/${id}/matches`)
+
+        if (!response.ok) {
+          return
+        }
+
+        const data = await response.json()
+        setMatches(data)
+      } catch {
+        setMatches([])
+      }
+    }
+
+    getItem()
+    getMatches()
+  }, [id])
+
+  async function updateStatus(status) {
+    try {
+      const response = await fetch(`http://localhost:5000/api/items/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
       })
-      .then((data) => setItem(data))
-      .catch((error) => console.log(error))
-  }, [id])
 
-  useEffect(() => {
-    fetch(`http://localhost:5000/api/items/${id}/matches`)
-      .then((response) => response.json())
-      .then((data) => setMatches(data))
-  }, [id])
+      if (!response.ok) {
+        throw new Error("Unable to update item")
+      }
 
-  const updateStatus = (status) => {
-    fetch(`http://localhost:5000/api/items/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ status: status })
-    })
-      .then((response) => response.json())
-      .then((data) => setItem(data))
+      const data = await response.json()
+      setItem(data)
+    } catch {
+      alert("Unable to update item.")
+    }
   }
 
   if (!item) {
@@ -45,7 +68,6 @@ function ItemDetails() {
   return (
     <div className="item-details">
       <h1>{item.name}</h1>
-
       <p>Type: {item.status}</p>
       <p>Category: {item.category}</p>
       <p>Description: {item.description}</p>
@@ -53,15 +75,11 @@ function ItemDetails() {
       <p>Location: {item.location}</p>
 
       {user && item.userId === user.id && item.status === "Lost" && (
-        <button onClick={() => updateStatus("Found")}>
-          Mark as Found
-        </button>
+        <button onClick={() => updateStatus("Found")}>Mark as Found</button>
       )}
 
       {user && item.userId === user.id && item.status === "Found" && (
-        <button onClick={() => updateStatus("Claimed")}>
-          Mark as Claimed
-        </button>
+        <button onClick={() => updateStatus("Claimed")}>Mark as Claimed</button>
       )}
 
       <h2>Possible Matches</h2>

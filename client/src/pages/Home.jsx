@@ -1,27 +1,30 @@
-import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import ItemCard from "../components/ItemCard"
-import { Link } from "react-router-dom"
 
 function Home() {
   const navigate = useNavigate()
   const [items, setItems] = useState([])
 
   useEffect(() => {
-  const user = JSON.parse(localStorage.getItem("user"))
+    async function getItems() {
+      try {
+        const response = await fetch("http://localhost:5000/api/items")
+        const data = await response.json()
+        setItems(data)
+      } catch {
+        setItems([])
+      }
+    }
 
-  fetch("http://localhost:5000/api/items")
-    .then((response) => response.json())
-    .then((data) => setItems(data))
-}, [])
+    getItems()
+  }, [])
 
   return (
     <main className="home">
-
       <section className="hero">
         <h1>Lost Somthing?</h1>
         <h1>Found Somthing?</h1>
-
         <p>A simple platform to help people find their lost belongings.</p>
 
         <div className="hero-buttons">
@@ -32,13 +35,11 @@ function Home() {
 
       <section className="browse-section">
         <h2>Find Lost & Found Items</h2>
-
         <p>Search through reported lost and found items.</p>
-
         <Link to="/browse">Browse Items</Link>
 
         <div className="card-container">
-          {items.filter((item) => item.status !== "Claimed").slice(0, 3).map((item) => (
+          {items.slice(0, 3).map((item) => (
             <ItemCard
               key={item._id}
               name={item.name}
@@ -51,9 +52,7 @@ function Home() {
             />
           ))}
         </div>
-
       </section>
-
     </main>
   )
 }
